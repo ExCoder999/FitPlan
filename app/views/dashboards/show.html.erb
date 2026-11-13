@@ -1,16 +1,33 @@
 <% content_for :title, t('.title') %>
 
-<h1><%= t('.title') %></h1>
+<div class="d-flex justify-content-between align-items-center">
+  <h1><%= t('.title') %></h1>
 
-<div class="row g-3 mb-3">
-  <%= render 'card', title: t('.cards.imc'), content: "#{@healthy_metric&.imc || 0} kg/m²", icon: "bi bi-person-fill" %>
-  <%= render 'card', title: t('.cards.tmb'), content: "#{@healthy_metric&.tmb || 0} kcal/dia", icon: "bi bi-fire" %>
-  <%= render 'card', title: t('.cards.total_calories'), content: "#{@total_diet_calories} kcal", icon: "bi bi-fire" %>
-  <%= render 'card', title: t('.cards.average_calories'), content: "#{@average_diet_calories} kcal", icon: "bi bi-activity" %>
-  <%= render 'card', title: t('.cards.completions_today'), content: @total_completions_today, icon: "bi bi-check-circle" %>
-  <%= render 'card', title: t('.cards.total_completions'), content: @total_completions, icon: "bi bi-bar-chart" %>
-  <%= render 'card', title: t('.cards.streak'), content: "#{@streak} #{t('.cards.days')}", icon: "bi bi-trophy" %>
-  <%= render 'card', title: t('.cards.best_day'), content: @best_day ? t("date.day_names")[@best_day] : "-", icon: "bi bi-star" %>
+  <%= link_to global_rankings_path, data: { controller: "bridge--nav-button", bridge_title: t('link_rankings') }, class: 'btn btn-sm btn-light border flex-shrink-0' do %>
+    <i class="bi bi-trophy me-1"></i> <%= t('link_rankings') %>
+  <% end %>
+</div>
+
+<div data-controller="hint">
+  <button class="btn btn-sm btn-outline-body w-100 d-md-none mt-3 mb-2" type="button"
+    data-bs-toggle="collapse" data-bs-target="#dashboard_cards" aria-expanded="true" aria-controls="dashboard_cards">
+    <%= t('.summary') %> <i class="bi bi-chevron-up ms-1"></i>
+  </button>
+
+  <div id="dashboard_cards" class="collapse collapse-mobile show">
+    <div class="row g-3 mb-3">
+      <%= render 'card', accent: 'orange',  title: t('.cards.imc'), hint: t('.hints.imc'), content: "#{@healthy_metric&.imc || 0} kg/m²", icon: "bi bi-person-fill" %>
+      <%= render 'card', accent: 'orange',  title: t('.cards.tmb'), hint: t('.hints.tmb'), content: "#{@healthy_metric&.tmb || 0} kcal/dia", icon: "bi bi-lightning-charge-fill" %>
+      <%= render 'card', accent: 'orange',  title: t('.cards.total_calories'), hint: t('.hints.total_calories'), content: "#{@total_diet_calories} kcal", icon: "bi bi-fire" %>
+      <%= render 'card', accent: 'orange',  title: t('.cards.average_calories'), hint: t('.hints.average_calories'), content: "#{@average_diet_calories} kcal", icon: "bi bi-activity" %>
+      <%= render 'card', accent: 'success', title: t('.cards.completions_today'), hint: t('.hints.completions_today'), content: @total_completions_today, icon: "bi bi-check-circle" %>
+      <%= render 'card', accent: 'success', title: t('.cards.total_completions'), hint: t('.hints.total_completions'), content: @total_completions, icon: "bi bi-bar-chart" %>
+      <%= render 'card', accent: 'success', title: t('.cards.streak'), hint: t('.hints.streak'), content: "#{@streak} #{t('.cards.days')}", icon: "bi bi-trophy" %>
+      <%= render 'card', accent: 'success', title: t('.cards.best_day'), hint: t('.hints.best_day'), content: @best_day ? t("date.day_names")[@best_day] : "-", icon: "bi bi-star" %>
+    </div>
+  </div>
+
+  <%= render "shared/hint_dialog" %>
 </div>
 
 <% if @weekly_progress[:last_week] > 0 || @weekly_progress[:this_week] > 0 %>
@@ -21,7 +38,8 @@
     </div>
     <p class="text-muted small mb-2"><%= t('.weekly_progress.description') %></p>
     <div class="progress" style="height: 8px;">
-      <div class="progress-bar bg-orange" style="width: <%= @weekly_progress[:percentage] %>%"></div>
+      <div class="progress-bar bg-orange" style="width: 0"
+        data-controller="progress" data-progress-percentage-value="<%= @weekly_progress[:percentage] %>"></div>
     </div>
   </div>
 <% end %>

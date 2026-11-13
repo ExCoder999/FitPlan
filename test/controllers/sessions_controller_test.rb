@@ -76,6 +76,18 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "should take an unverified account over from whoever signed it up" do
+    @user.update! verified: false
+    squatter_session = @user.sessions.create!
+    OmniAuth.config.mock_auth[:google_oauth2] = google_auth_hash(email: @user.email, name: @user.name)
+
+    get "/auth/google_oauth2/callback"
+
+    assert @user.reload.verified?
+    assert_not @user.authenticate("Secret1*3*5*")
+    assert_not Session.exists?(squatter_session.id)
+  end
+
   test "should sign up with google" do
     OmniAuth.config.mock_auth[:google_oauth2] = google_auth_hash(email: "new@hotmail.com", name: "New User")
 
@@ -133,4 +145,13 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     def google_auth_hash(email:, name:, image: nil)
       OmniAuth::AuthHash.new(provider: "google_oauth2", uid: "123", info: { email: email, name: name, image: image })
     end
+
+  test "should limit sign in attempts" do
+    with_rate_limit_exceeded do
+      post sign_in_url, params: { email: @user.email, password: "Secret1*3*5*" }
+    end
+
+    assert_redirected_to sign_in_url
+    assert_equal "Too many attempts. Please wait a few minutes and try again", flash[:notice]
+  end
 end

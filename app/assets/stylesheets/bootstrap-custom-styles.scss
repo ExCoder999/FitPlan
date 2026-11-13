@@ -24,6 +24,54 @@ input.form-control:focus {
 
 .hover-zoom-sm:hover { transform: scale(1.02); }
 
+.sort-active { display: none; }
+
+.sorting {
+  .sort-idle   { display: none; }
+  .sort-active { display: inline; }
+
+  .sort-toggle {
+    position: fixed;
+    top: calc(var(--topbar-height, 0px) + .75rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1030;
+    --bs-btn-border-color: var(--bs-black);
+    --bs-btn-hover-border-color: var(--bs-black);
+    --bs-btn-active-border-color: var(--bs-black);
+    border-radius: var(--bs-border-radius-pill);
+  }
+
+  .hover-zoom-sm,
+  .hover-zoom-sm:hover { transition: none; transform: none; }
+
+  [data-sortable-url] {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+
+    * { pointer-events: none; }
+
+    > * {
+      outline: 2px dashed var(--bs-secondary-border-subtle);
+      outline-offset: 2px;
+    }
+
+    .btn { opacity: .4; }
+  }
+
+  .sortable-fallback {
+    opacity: 1 !important;
+    background: var(--bs-body-bg) content-box;
+
+    > * {
+      outline: none;
+      box-shadow: var(--bs-box-shadow-lg) !important;
+    }
+  }
+}
+
 $orange: #ff6b35;
 
 :root {
@@ -58,6 +106,17 @@ $orange: #ff6b35;
   --bs-btn-active-border-color: var(--bs-body-color);
 }
 
+// Cor da opção marcada em grupos de .btn-check, igual ao filtro de planilhas.
+@each $name, $background, $color in (success, var(--bs-success), #000), (orange, var(--bs-orange), #000), (primary, var(--bs-primary), #fff) {
+  .btn.btn-checked-#{$name} {
+    --bs-btn-border-color: var(--bs-secondary);
+    --bs-btn-hover-border-color: var(--bs-secondary);
+    --bs-btn-active-bg: #{$background};
+    --bs-btn-active-border-color: #{$background};
+    --bs-btn-active-color: #{$color};
+  }
+}
+
 :root {
   --bs-completed-success-bg: #{rgba($success, 0.15)};
   --bs-completed-success-border: #{rgba($success, 0.4)};
@@ -86,8 +145,26 @@ $orange: #ff6b35;
 .pulse-success { animation: pulse-success 0.9s ease-out; }
 .pulse-orange  { animation: pulse-orange  0.9s ease-out; }
 
+// Usa outline porque .shadow-sm e .border-* travam box-shadow e border-color com !important.
+@each $name, $color in (success: $success, orange: $orange) {
+  @keyframes pulse-suggested-#{$name} {
+    0%   { outline: 2px solid #{rgba($color, 0.9)}; outline-offset: 0; }
+    100% { outline: 2px solid #{rgba($color, 0)};   outline-offset: 0.25rem; }
+  }
+
+  .pulse-suggested-#{$name} { animation: pulse-suggested-#{$name} 1.2s ease-out 2; }
+}
+
 turbo-frame[aria-busy="true"] {
   opacity: 0.5;
   pointer-events: none;
   transition: opacity 0.15s ease-in;
 }
+// O resumo do painel recolhe no celular. A partir de md ele está sempre
+// aberto, independente de como o collapse ficou em uma tela menor.
+@media (min-width: 768px) {
+  .collapse-mobile { display: block !important; }
+}
+
+[data-bs-toggle="collapse"] .bi-chevron-up { display: inline-block; transition: transform 0.2s ease; }
+[data-bs-toggle="collapse"].collapsed .bi-chevron-up { transform: rotate(180deg); }

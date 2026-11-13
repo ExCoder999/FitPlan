@@ -1,15 +1,16 @@
 class User < ApplicationRecord
   include Normalizable
-  include User::Followable
-  include User::Shareable
-  include User::Rankable
-  include User::Omniauthable
+  include Followable
+  include Shareable
+  include Rankable
+  include Omniauthable
+  include OpenRouter::Connectable
 
   has_secure_password
   has_one_attached :avatar
 
   generates_token_for :email_verification, expires_in: 2.days do
-    email
+    [ email, unconfirmed_email ]
   end
   generates_token_for :password_reset, expires_in: 20.minutes do
     password_salt.last(10)
@@ -23,15 +24,14 @@ class User < ApplicationRecord
   validate :avatar_size, if: -> { attachment_changes["avatar"] }
 
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :unconfirmed_email, allow_nil: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, allow_nil: true, length: { minimum: 6 }
   validates :handle, presence: true, uniqueness: true, length: { minimum: 3 },
                      format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/ }, on: :update, if: :handle_changed?
 
-  normalizes :email, :handle, with: -> { _1.strip.downcase }
+  validates :locale, allow_nil: true, inclusion: { in: I18n.available_locales.map(&:to_s) }
 
-  before_validation if: :email_changed?, on: :update do
-    self.verified = false
-  end
+  normalizes :email, :unconfirmed_email, :handle, with: -> { _1.strip.downcase }
 
   before_create :generate_handle_unique
 
@@ -47,6 +47,18 @@ class User < ApplicationRecord
 
   def to_param
     handle
+  end
+
+  def email_to_verify
+    unconfirmed_email || email
+  end
+
+  def email_to_verify_taken?
+    User.where.not(id:).exists?(email: email_to_verify)
+  end
+
+  def verify_email
+    update email: email_to_verify, unconfirmed_email: nil, verified: true
   end
 
   def online?

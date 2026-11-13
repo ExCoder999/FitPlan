@@ -1,4 +1,10 @@
 module SheetsHelper
+  SHEET_ORIGIN_ICONS = { copied: "bi-files", suggested: "bi-stars", manual: "bi-pencil" }.freeze
+
+  def sheet_origin(sheet)
+    tag.i(class: "bi #{SHEET_ORIGIN_ICONS[sheet.origin]} me-1") + t("sheets.show.origins.#{sheet.origin}")
+  end
+
   def sheet_color(sheet)
     sheet.workout? ? "success" : "orange"
   end
@@ -17,6 +23,10 @@ module SheetsHelper
         content_tag(:i, '', class: 'bi bi-check-lg')
       end
     end
+  end
+
+  def sheet_filter_applied?
+    params[:type].present? || params[:completed].present?
   end
 
   def sheet_filter_params(type: params[:type], completed: params[:completed], search: params[:search])

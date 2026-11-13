@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   post   "sign_up", to: "registrations#create"
 
   get '/auth/:provider/callback', to: 'sessions#omniauth'
+  get '/auth/:provider/handoff',  to: 'sessions/handoffs#show', as: :session_handoff, constraints: { provider: /google_oauth2|facebook/ }
+  get '/session_handoff',         to: 'sessions/handoffs#status', as: :session_handoff_status
   get '/auth/failure',           to: 'sessions#omniauth'
 
   resources :sessions, only: [:index, :show, :destroy]
@@ -31,7 +33,17 @@ Rails.application.routes.draw do
     end
   end
 
+  namespace :open_router do
+    resource :connection, only: :destroy do
+      get :callback
+    end
+    resource :usage, only: :show
+  end
+
+  resource :recommendation, only: %i[ new create ]
+
   namespace :sheets do
+    resource :generation, only: :create
     resources :shares, only: [:index, :new, :create, :show, :destroy] do
       resources :requests, only: [:update, :destroy], shallow: true do
         get :preview_content, on: :member
@@ -41,13 +53,21 @@ Rails.application.routes.draw do
 
   resources :sheets do
     resource :completion, only: %i[create destroy], module: :sheets
+    resource :position, only: :update, module: :sheets
+
+    post  "workouts/generation", to: "workouts/generations#create", as: :workouts_generation
+    patch "workouts/generation", to: "workouts/generations#update"
+    post  "diets/generation",    to: "diets/generations#create",    as: :diets_generation
+    patch "diets/generation",    to: "diets/generations#update"
 
     resources :diets do
       resource :completion, only: %i[create destroy], module: :diets
+      resource :position, only: :update, module: :diets
     end
 
     resources :workouts do
       resource :completion, only: %i[create destroy], module: :workouts
+      resource :position, only: :update, module: :workouts
       resources :videos, only: [:destroy], module: :workouts
     end
   end
@@ -62,7 +82,7 @@ Rails.application.routes.draw do
   end
 
   root 'sheets#index'
-  get "set_locale/(:locale)", to: "application#set_session_locale", as: :set_locale
+  patch "set_locale/(:locale)", to: "application#change_locale", as: :set_locale
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

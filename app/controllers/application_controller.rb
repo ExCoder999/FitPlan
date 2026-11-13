@@ -1,21 +1,39 @@
 class ApplicationController < ActionController::Base
   before_action :set_current_request_details
-  before_action :authenticate, except: %i[ set_session_locale ]
-  before_action :set_locale
+  before_action :claim_session_handoff, if: :session_handoff_pending?
+  before_action :authenticate, except: %i[ change_locale ]
+  before_action :resume_session, only: %i[ change_locale ]
 
-  helper_method :current_user_avatar
+  include Locable
 
-  def set_session_locale
-    session[:locale] = params[:locale] if has_locale_in_params?
-    recede_or_redirect_to request.referer || root_path
-  end
+  helper_method :current_user_avatar, :session_handoff_pending?
 
   private
     def authenticate
-      if session_record = Session.find_by_id(cookies.signed[:session_token])
-        Current.session = session_record
-      else
-        redirect_to welcome_path
+      redirect_to welcome_path unless resume_session
+    end
+
+    def resume_session
+      Current.session = Session.find_by_id(cookies.signed[:session_token])
+    end
+
+    def start_new_session_for(user)
+      @session = user.sessions.create!
+
+      cookies.delete(:session_handoff)
+      cookies.signed.permanent[:session_token] = { value: @session.id, httponly: true }
+      redirect_to sheets_path(format: :html)
+    end
+
+    # Whichever page the app shows when it comes back from signing in through a
+    # provider trades the pending code for a session (see SessionHandoff).
+    def session_handoff_pending?
+      turbo_native_app? && cookies.signed[:session_handoff].present?
+    end
+
+    def claim_session_handoff
+      if user = SessionHandoff.claim(cookies.signed[:session_handoff])
+        start_new_session_for(user)
       end
     end
 
@@ -26,19 +44,5 @@ class ApplicationController < ActionController::Base
 
     def current_user_avatar
       @current_user_avatar ||= Current.user&.avatar
-    end
-
-  protected
-
-    def set_locale
-      I18n.locale = session[:locale] || device_locale || I18n.default_locale
-    end
-
-    def device_locale
-      request.headers["Accept-Language"].to_s[/\A[a-z]{2}/].presence_in(I18n.available_locales.map(&:to_s))
-    end
-
-    def has_locale_in_params?
-      params[:locale].present? && I18n.available_locales.include?(params[:locale].to_sym)
     end
 end
