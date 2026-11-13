@@ -10,6 +10,7 @@ class RegistrationsTest < ApplicationSystemTestCase
     fill_in :password_confirmation, with: "Secret6*4*2*"
     click_on t("registrations.new.submit")
 
-    assert_selector "h1", text: t("sheets.index.title")
+    assert_current_path sign_in_path
+    assert_text t("notice.registration.create", email: "lazaronixon@hey.com")
   end
 end
