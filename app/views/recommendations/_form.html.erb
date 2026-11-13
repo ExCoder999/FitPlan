@@ -12,10 +12,19 @@
     </small>
   </div>
 
-  <button class="btn btn-sm btn-outline-body mb-3" type="button"
-    data-bs-toggle="collapse" data-bs-target="#recommendation_questions" aria-expanded="true" aria-controls="recommendation_questions">
-    <%= sheet ? t('.for_sheet', name: sheet.name) : t('.kind') %> <i class="bi bi-chevron-up ms-1"></i>
-  </button>
+  <div class="d-flex align-items-center justify-content-between gap-2 mb-3" data-controller="hint">
+    <button class="btn btn-sm btn-outline-body" type="button"
+      data-bs-toggle="collapse" data-bs-target="#recommendation_questions" aria-expanded="true" aria-controls="recommendation_questions">
+      <%= sheet ? t('.for_sheet', name: sheet.name) : t('.kind') %> <i class="bi bi-chevron-up ms-1"></i>
+    </button>
+
+    <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary" aria-label="<%= t('.about.title') %>"
+      data-action="hint#show" data-hint-title-param="<%= t('.about.title') %>" data-hint-body-param="<%= recommendation_about %>">
+      <i class="bi bi-info-circle fs-5"></i>
+    </button>
+
+    <%= render "shared/hint_dialog" %>
+  </div>
 
   <%= form.hidden_field :kind, value: sheet.sheet_type if sheet %>
 
@@ -29,6 +38,11 @@
           <% end %>
         </div>
         <%= render "recommendations/choice_hints", choices: OpenRouter::Recommendation::Restrictions::KINDS, selected: "workout" %>
+
+        <div class="mb-3" data-recommendations--generate-target="workoutOnly">
+          <%= form.label :split, t('.split'), class: "form-label" %>
+          <%= form.select :split, OpenRouter::Recommendation::Restrictions::SPLITS.map { |split| [ t(".splits.#{split}"), split ] }, {}, class: "form-select" %>
+        </div>
       <% elsif sheet.items.any? %>
         <div class="btn-group w-100 mb-2" role="group">
           <% %w[ add improve ].each do |mode| %>
@@ -58,11 +72,6 @@
 
       <%= form.label :notes, t('.notes'), class: "form-label" %>
       <%= form.text_area :notes, rows: 2, maxlength: 500, class: "form-control", placeholder: t('.notes_placeholder') %>
-
-      <small class="text-muted d-block mt-1">
-        <i class="bi bi-info-circle me-1"></i>
-        <%= Current.user.healthy_metric ? t('.uses_metrics_html', link: link_to(t('.health_metrics'), edit_identity_healthy_metric_path)) : t('.missing_metrics_html', link: link_to(t('.add_metrics'), new_identity_healthy_metric_path)) %>
-      </small>
 
       <button type="submit" class="btn btn-success w-100 d-md-none mt-3" data-recommendations--generate-target="submit">
         <%= render "recommendations/generate_label" %>
